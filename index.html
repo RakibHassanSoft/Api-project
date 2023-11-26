@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Category Website</title>
+   <link rel="stylesheet" href="./style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+    
+    <div class="box">
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">
+                    <img src="./Logo.png" alt="Logo">
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <button class="btn btn-secondary" onclick="sortData()">Sort by view</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="btn btn-danger" onclick="redirectToBlog()">Blog</button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </div>
+
+    <div class="search d-flex p-3 justify-content-center align-items-center">
+        <div id="categoryButtons" class="btn-group" role="group" aria-label="First group">
+        </div>
+    </div>
+    
+
+    <div id="categoryData" class="container mt-3">
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function fetchData(url) {
+            return fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("Network response was not ok");
+                    }
+                    return response.json();
+                });
+        }
+
+        function renderButtons(categories) {
+            var buttonsContainer = document.getElementById("categoryButtons");
+
+            categories.forEach(function (category) {
+                var button = document.createElement("button");
+                button.className = "btn btn-lg btn-primary m-1";
+                button.textContent = category.category;
+                button.addEventListener("click", function () {
+                    showCategoryData(category.category_id);
+                });
+                buttonsContainer.appendChild(button);
+            });
+        }
+
+function showCategoryData(categoryId) {
+    var dataContainer = document.getElementById("categoryData");
+    dataContainer.innerHTML = ""; //clear data 
+
+
+    fetchData(`https://openapi.programming-hero.com/api/videos/category/${categoryId}`)
+        .then(categoryData => {
+            if (categoryData.status) {
+                if (categoryData.data.length > 0) {
+                    categoryData.data.forEach(video => {
+                        var cardHTML = `
+                            <div class="video-card">
+                                <img src="${video.thumbnail}" alt="${video.title}">
+                                <div class="video-card-content">
+                                    <h3>${video.title}</h3>
+                                    <p>Views: ${video.others.views}</p>
+                                    <p>Posted Date: ${new Date(video.others.posted_date * 1000).toLocaleDateString()}</p>
+                                    <div class="authors">
+                                        <h4>Authors:</h4>
+                                        ${video.authors.map(author => `
+                                            <div class="author">
+                                                <img src="${author.profile_picture}" alt="${author.profile_name}">
+                                                <p>${author.profile_name} ${author.verified ? '(Verified)' : ''}</p>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        dataContainer.innerHTML += cardHTML;
+                    });
+                } 
+            } else {
+                var iconHTML = `
+                <div class="container">
+                  <img class="err" src="icon.png" alt="Error Loading Data">
+                   <div class="text-show">
+                  <h1>Oops!! Sorry, There is no</h1>
+                  <h1>content here</h1>
+               </div>
+               </div>
+
+            `;
+            dataContainer.innerHTML += iconHTML;
+            }
+        })
+        .catch(error => {
+            console.error("Error fetching category data:", error);
+        });
+}
+        fetchData("https://openapi.programming-hero.com/api/videos/categories")
+            .then(data => {
+                if (data.status) {
+                    renderButtons(data.data);
+                } else {
+                    console.error("Failed to fetch categories");
+                }
+            })
+            .catch(error => {
+                console.error("Error fetching data:", error);
+            });
+
+        // Function to sort data based on views
+        function sortData() {
+            var dataContainer = document.getElementById("categoryData");
+            var cards = Array.from(dataContainer.getElementsByClassName("video-card"));
+
+            cards.sort((a, b) => {
+                var viewsA = parseInt(a.querySelector("p:nth-child(2)").textContent.split(":")[1].trim());
+                var viewsB = parseInt(b.querySelector("p:nth-child(2)").textContent.split(":")[1].trim());
+
+                return viewsB - viewsA;
+            });
+
+            dataContainer.innerHTML = "";
+            cards.forEach(card => {
+                dataContainer.appendChild(card);
+            });
+        }
+        function redirectToBlog() {
+        window.location.href = 'blog.html';
+        }
+    </script>
+</body>
+
+</html>
+
